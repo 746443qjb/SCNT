@@ -1,0 +1,40 @@
+Package: SCNT
+Title: Let's Make it Easier to Process the sc/sn RNA seq and st Data of Kidney
+Version: 1.0.1
+Authors@R: 
+    person("Jianbo", "Qing", email = "Dr.jianboqing@gmail.com", role = c("aut", "cre"),
+    comment = c(ORCID = "0000-0002-6146-3389"))
+Description: 
+    A collection of tools for visualizing and analyzing single-cell and
+    spatial transcriptomics data. Includes functions for creating customized plots,
+    gene expression dotplots, spatial feature visualization, and flow-like plots.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports: 
+    Seurat,
+    AUCell,
+    VISION,
+    ggplot2,
+    ggpubr,
+    DoubletFinder,
+    dplyr,
+    tidyr,
+    tibble,
+    Matrix,
+    reticulate,
+    ggrastr,
+    scales,
+    rlang,
+    stringr,
+    stats,
+    grDevices,
+    methods,
+    utils
+    SeuratObject
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+    
