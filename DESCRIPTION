@@ -31,8 +31,8 @@ Imports:
     stats,
     grDevices,
     methods,
-    utils
-    SeuratObject
+    utils,
+    SeuratObject,
 Suggests:
     knitr,
     rmarkdown,

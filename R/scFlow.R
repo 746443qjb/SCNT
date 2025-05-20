@@ -110,9 +110,10 @@ scflow <- function(
     point_size = 0.5, point_color = "black", point_alpha = 0.6,
     theme = "default",
     quad_text_size = 4, quad_text_color = "black",
-    x_range = NULL, y_range = NULL
+    x_range = NULL, y_range = NULL,
+    skip_density = FALSE
 ) {
-  # Load required packages
+
   require(Seurat)
   require(dplyr)
   require(ggplot2)
@@ -140,25 +141,28 @@ scflow <- function(
     stop(paste("Group column", group, "not found in meta.data"))
   }
 
-
   expr_data <- t(as.matrix(obj@assays[[assays]]$data[genes_to_check, ]))
   expr_data <- as.data.frame(expr_data) %>% rownames_to_column(var = "cellName")
 
 
   if (!is.null(ref)) {
-    expr_data[[x_gene]] <- expr_data[[x_gene]] / expr_data[[ref]]
-    expr_data[[y_gene]] <- expr_data[[y_gene]] / expr_data[[ref]]
+
+    min_non_zero <- min(expr_data[[ref]][expr_data[[ref]] > 0], na.rm = TRUE)
+    ref_values <- ifelse(expr_data[[ref]] <= 0, min_non_zero * 0.1, expr_data[[ref]])
+
+    expr_data[[x_gene]] <- expr_data[[x_gene]] / ref_values
+    expr_data[[y_gene]] <- expr_data[[y_gene]] / ref_values
     expr_data <- expr_data[, c("cellName", x_gene, y_gene)]
   }
 
+
   geneData <- expr_data
-
-
   geneData$group_label <- obj@meta.data[[group]][match(geneData$cellName, rownames(obj@meta.data))]
-
   geneData$group_label <- factor(geneData$group_label)
 
+
   group_order <- levels(geneData$group_label)
+
 
   theme_style <- if (theme == "dark") {
     theme(
@@ -187,30 +191,47 @@ scflow <- function(
       )
   }
 
-
   custom_plot <- function(plot.data, x_gene, y_gene, x.cut, y.cut, title, x_range, y_range) {
 
-    plot.data <- plot.data %>% filter(!is.na(.data[[x_gene]]) & !is.na(.data[[y_gene]]))
+    plot.data <- plot.data %>%
+      filter(!is.na(.data[[x_gene]]) & !is.na(.data[[y_gene]]) &
+               is.finite(.data[[x_gene]]) & is.finite(.data[[y_gene]]))
 
-
-    if (nrow(plot.data) == 0) {
-      stop("The input plot.data is empty. Check the input data.")
+    if (nrow(plot.data) < 3) {
+      warning("Insufficient valid data points for plotting density.")
+      p <- ggplot(plot.data, aes(x = .data[[x_gene]], y = .data[[y_gene]])) +
+        geom_point(size = point_size, color = point_color, alpha = point_alpha) +
+        geom_vline(xintercept = x.cut, linetype = "dashed", color = cutline_color, linewidth = cutline_size) +
+        geom_hline(yintercept = y.cut, linetype = "dashed", color = cutline_color, linewidth = cutline_size) +
+        labs(title = title, x = x_gene, y = y_gene) +
+        theme_style
+      return(p)
     }
-
 
     if (is.null(x_range)) {
       x_range <- range(plot.data[[x_gene]], na.rm = TRUE)
 
-      x_buffer <- diff(x_range) * 0.05
-      x_range <- c(x_range[1] - x_buffer, x_range[2] + x_buffer)
+      if (diff(x_range) < 1e-6) {
+        x_center <- mean(x_range)
+        x_range <- c(x_center - 0.5, x_center + 0.5)
+      } else {
+        x_buffer <- diff(x_range) * 0.05
+        x_range <- c(x_range[1] - x_buffer, x_range[2] + x_buffer)
+      }
     }
 
     if (is.null(y_range)) {
       y_range <- range(plot.data[[y_gene]], na.rm = TRUE)
 
-      y_buffer <- diff(y_range) * 0.05
-      y_range <- c(y_range[1] - y_buffer, y_range[2] + y_buffer)
+      if (diff(y_range) < 1e-6) {
+        y_center <- mean(y_range)
+        y_range <- c(y_center - 0.5, y_center + 0.5)
+      } else {
+        y_buffer <- diff(y_range) * 0.05
+        y_range <- c(y_range[1] - y_buffer, y_range[2] + y_buffer)
+      }
     }
+
 
     plot.data <- plot.data %>%
       mutate(
@@ -222,35 +243,43 @@ scflow <- function(
         )
       )
 
-
     quadrant_counts <- plot.data %>%
       group_by(quadrant) %>%
       tally(name = "count") %>%
       mutate(percent = count / sum(count) * 100)
 
 
-    p <- ggplot(plot.data, aes(x = .data[[x_gene]], y = .data[[y_gene]])) +
+    p <- ggplot(plot.data, aes(x = .data[[x_gene]], y = .data[[y_gene]]))
 
-      stat_density_2d(aes(fill = after_stat(level)), geom = "polygon", contour = TRUE, h = c(1, 1)) +
-      scale_fill_gradientn(colors = color, name = "Density") +
 
+    if (!skip_density) {
+      tryCatch({
+        p <- p +
+          stat_density_2d(
+            aes(fill = after_stat(level)),
+            geom = "polygon",
+            contour = TRUE,
+            h = c(diff(x_range)/15, diff(y_range)/15),
+            bins = 10
+          ) +
+          scale_fill_gradientn(colors = color, name = "Density")
+      }, error = function(e) {
+        warning(paste("Could not draw density contours:", e$message))
+      })
+    }
+
+    p <- p +
       geom_point(size = point_size, color = point_color, alpha = point_alpha) +
-
       geom_vline(xintercept = x.cut, linetype = "dashed", color = cutline_color, linewidth = cutline_size) +
       geom_hline(yintercept = y.cut, linetype = "dashed", color = cutline_color, linewidth = cutline_size) +
-
       labs(
         title = title,
         x = x_gene,
-        y = y_gene,
-        fill = "Density"
+        y = y_gene
       ) +
-
       xlim(x_range) +
       ylim(y_range) +
-
       theme_style
-
 
     for (quad in quadrant_counts$quadrant) {
       quad_data <- quadrant_counts %>% filter(quadrant == quad)
@@ -270,7 +299,6 @@ scflow <- function(
     return(p)
   }
 
-
   gg.ls <- list()
   for (group in group_order) {
     current_data <- geneData %>% dplyr::filter(group_label == group)
@@ -282,18 +310,24 @@ scflow <- function(
       next
     }
 
-    gg.ls[[group]] <- custom_plot(
-      plot.data = current_data,
-      x_gene = x_gene,
-      y_gene = y_gene,
-      x.cut = x_cut,
-      y.cut = y_cut,
-      title = group,
-      x_range = x_range,
-      y_range = y_range
-    )
+    gg.ls[[group]] <- tryCatch({
+      custom_plot(
+        plot.data = current_data,
+        x_gene = x_gene,
+        y_gene = y_gene,
+        x.cut = x_cut,
+        y.cut = y_cut,
+        title = group,
+        x_range = x_range,
+        y_range = y_range
+      )
+    }, error = function(e) {
+      warning(paste("Error plotting group", group, ":", e$message))
+      ggplot() +
+        labs(title = paste("Error plotting", group, ":", e$message)) +
+        theme_void()
+    })
   }
-
 
   multi.page <- ggpubr::ggarrange(
     plotlist = gg.ls,
