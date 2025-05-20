@@ -1,6 +1,6 @@
 Package: SCNT
 Title: Let's Make it Easier to Process the sc/sn RNA seq and st Data of Kidney
-Version: 1.0.1
+Version: 1.1.0
 Authors@R: 
     person("Jianbo", "Qing", email = "Dr.jianboqing@gmail.com", role = c("aut", "cre"),
     comment = c(ORCID = "0000-0002-6146-3389"))
@@ -37,4 +37,3 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
-    
