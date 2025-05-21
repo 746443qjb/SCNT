@@ -31,7 +31,8 @@ scflow(
   quad_text_size = 4,
   quad_text_color = "black",
   x_range = NULL,
-  y_range = NULL
+  y_range = NULL,
+  skip_density = FALSE
 )
 }
 \arguments{

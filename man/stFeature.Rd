@@ -18,7 +18,8 @@ stFeature(
   alpha = 0.5,
   x_range = NULL,
   y_range = NULL,
-  show_image = TRUE
+  show_image = TRUE,
+  min_expression = 0
 )
 }
 \arguments{
@@ -58,20 +59,26 @@ If NULL, shows the entire range. Default is NULL.}
 
 \item{show_image}{Logical indicating whether to display the background tissue image.
 Default is TRUE.}
+
+\item{min_expression}{Numeric threshold for minimum feature expression. Cells with expression
+at or below this value will not be displayed. Default is 0.}
 }
 \value{
-A ggplot object representing the spatial feature plot.
+A ggplot object representing the spatial feature plot with only expressing cells.
 }
 \description{
 This function creates a spatial plot visualizing the expression of a single gene or feature
-across the tissue section. The expression level is represented by a color gradient, and the
-plot can be overlaid on the tissue histology image.
+across the tissue section. Only cells expressing the feature above a minimum threshold
+will be displayed, making it easier to visualize expression patterns without background noise.
+The expression level is represented by a color gradient, and the plot can be overlaid
+on the tissue histology image.
 }
 \details{
 This function visualizes the expression of a single gene/feature across a tissue section with:
 \enumerate{
 \item Background tissue image (if available and show_image=TRUE)
 \item Spots/cells positioned according to their spatial coordinates
+\item Only cells expressing the feature above min_expression are displayed
 \item Coloring based on the expression level of the specified feature
 }
 
@@ -91,31 +98,36 @@ library(dplyr)
 p1 <- stFeature(spatial_seurat_obj,
                feature = "TPSB2")
 
-# Customize color gradient
+# Only show cells with expression > 1
 p2 <- stFeature(spatial_seurat_obj,
+               feature = "TPSB2",
+               min_expression = 1)
+
+# Customize color gradient
+p3 <- stFeature(spatial_seurat_obj,
                feature = "TPSB2",
                color = c("grey90", "darkred"))
 
 # Customize point size and transparency
-p3 <- stFeature(spatial_seurat_obj,
+p4 <- stFeature(spatial_seurat_obj,
                feature = "TPSB2",
                point_size = 1.2,
                alpha = 0.8)
 
 # Add title and specify coordinate scale
-p4 <- stFeature(spatial_seurat_obj,
+p5 <- stFeature(spatial_seurat_obj,
                feature = "TPSB2",
                title = "TPSB2 Expression in Tissue",
                scale = "hires")
 
 # Zoom to a specific region
-p5 <- stFeature(spatial_seurat_obj,
+p6 <- stFeature(spatial_seurat_obj,
                feature = "TPSB2",
                x_range = c(2000, 4000),
                y_range = c(1000, 3000))
 
 # Hide background image to focus on expression pattern
-p6 <- stFeature(spatial_seurat_obj,
+p7 <- stFeature(spatial_seurat_obj,
                feature = "TPSB2",
                show_image = FALSE)
 
