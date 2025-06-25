@@ -2,7 +2,7 @@
 # SCNT
 
 ## Introduction
-
+![Introduction](man/Figure 1.png)
 **SCNT** (Single-Cell, Single-Nucleus, and Spatial Transcriptomics Analysis and Visualization Tools) is an R package designed to simplify the conversion of Seurat and H5ad objects and streamline analysis and visualization of single-cell and spatial transcriptomics data on the R platform. The package offers a range of features, including:
 
 1. **Effortless Seurat and H5ad Conversion**: Simplifies the process of converting between Seurat and H5ad objects, offering support for users working across both Python and R platforms.
